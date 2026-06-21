@@ -1,0 +1,113 @@
+name: Daily Portfolio Snapshot
+
+on:
+  schedule:
+    - cron: '30 21 * * 1-5'  # Mon-Fri 4:30 PM ET (EDT)
+    - cron: '30 20 * * 1-5'  # Mon-Fri 4:30 PM ET (EST)
+  workflow_dispatch:  # Manual trigger from GitHub UI anytime
+
+jobs:
+  generate-snapshot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install node-fetch
+
+      - name: Generate snapshot
+        run: node scripts/generate-snapshot.js
+
+      - name: Commit snapshot to repo
+        run: |
+          git config --global user.name "Portfolio Bot"
+          git config --global user.email "bot@portfolio.com"
+          git add snapshot.html
+          git diff --staged --quiet || git commit -m "📊 Daily snapshot - $(date -u '+%B %d, %Y')"
+          git push
+
+      - name: Send email to dad
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          secure: false
+          username: ${{ secrets.GMAIL_USER }}
+          password: ${{ secrets.GMAIL_PASS }}
+          subject: "📈 Long Term 35 — Daily Snapshot"
+          to: Tran1.Lam@gmail.com
+          from: ${{ secrets.GMAIL_USER }}
+          html_body: |
+            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:620px;margin:0 auto;background:#0a0e1a;border-radius:16px;overflow:hidden;">
+
+              <!-- Header -->
+              <div style="background:#0d1b2e;padding:28px 32px;border-bottom:1px solid rgba(99,179,237,0.15);">
+                <div style="display:flex;align-items:center;gap:14px;">
+                  <div style="width:44px;height:44px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-radius:11px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;color:#fff;flex-shrink:0;">L35</div>
+                  <div>
+                    <div style="font-size:19px;font-weight:700;color:#e8f0fe;">Long Term 35 Portfolio</div>
+                    <div style="font-size:12px;color:#64748b;margin-top:3px;">End-of-day snapshot · Generated automatically after market close</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Body -->
+              <div style="padding:32px;">
+                <p style="color:#cbd5e1;font-size:15px;line-height:1.7;margin-bottom:28px;">
+                  Your daily portfolio snapshot is ready. Today's dashboard includes live end-of-day prices, all performance periods, earnings beat/miss highlights, and momentum signals for all 34 stocks.
+                </p>
+
+                <!-- Two buttons side by side -->
+                <table style="width:100%;border-collapse:collapse;margin-bottom:28px;">
+                  <tr>
+                    <td style="padding-right:8px;">
+                      <a href="https://${{ github.repository_owner }}.github.io/longterm35/snapshot.html"
+                         style="display:block;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;text-decoration:none;padding:14px 20px;border-radius:10px;font-weight:700;font-size:14px;text-align:center;">
+                        📊 View Snapshot
+                      </a>
+                    </td>
+                    <td style="padding-left:8px;">
+                      <a href="https://${{ github.repository_owner }}.github.io/longterm35/index.html"
+                         style="display:block;background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.4);color:#a78bfa;text-decoration:none;padding:14px 20px;border-radius:10px;font-weight:700;font-size:14px;text-align:center;">
+                        ⚡ Live Dashboard + Analysis
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- What each button does -->
+                <table style="width:100%;border-collapse:collapse;margin-bottom:28px;background:rgba(255,255,255,0.03);border-radius:10px;overflow:hidden;">
+                  <tr>
+                    <td style="padding:14px 16px;border-bottom:1px solid rgba(99,179,237,0.08);vertical-align:top;width:50%;">
+                      <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:4px;">📊 Snapshot</div>
+                      <div style="font-size:12px;color:#94a3b8;line-height:1.5;">Static end-of-day data. Loads instantly. Safe to forward to anyone — no account needed.</div>
+                    </td>
+                    <td style="padding:14px 16px;border-bottom:1px solid rgba(99,179,237,0.08);vertical-align:top;">
+                      <div style="font-size:12px;font-weight:700;color:#a78bfa;margin-bottom:4px;">⚡ Live Dashboard</div>
+                      <div style="font-size:12px;color:#94a3b8;line-height:1.5;">Click any stock for full earnings analysis, momentum breakdown, and AI-powered insights.</div>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Legend -->
+                <div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:14px 16px;margin-bottom:24px;">
+                  <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Reading the dashboard</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:12px;">
+                    <span style="font-size:12px;color:#94a3b8;"><span style="display:inline-block;width:10px;height:10px;background:#10b981;border-radius:2px;margin-right:5px;vertical-align:middle;"></span>Green row = Earnings beat</span>
+                    <span style="font-size:12px;color:#94a3b8;"><span style="display:inline-block;width:10px;height:10px;background:#ef4444;border-radius:2px;margin-right:5px;vertical-align:middle;"></span>Red row = Earnings miss</span>
+                    <span style="font-size:12px;color:#94a3b8;"><span style="display:inline-block;width:10px;height:10px;background:#f97316;border-radius:2px;margin-right:5px;vertical-align:middle;"></span>Orange ticker = Losing momentum</span>
+                  </div>
+                </div>
+
+                <p style="color:#475569;font-size:11px;border-top:1px solid rgba(99,179,237,0.1);padding-top:16px;line-height:1.6;">
+                  This email is sent automatically every weekday after market close. Feel free to forward the snapshot link to anyone — it works on phone and desktop with no login required.
+                </p>
+              </div>
+            </div>
