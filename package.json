@@ -1,0 +1,11 @@
+{
+  "name": "longterm35-snapshot",
+  "version": "1.0.0",
+  "description": "Daily portfolio snapshot generator",
+  "scripts": {
+    "generate": "node scripts/generate-snapshot.js"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
+}
