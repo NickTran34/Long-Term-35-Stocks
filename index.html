@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Long Term 35 — Portfolio Dashboard</title>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --bg2: #111827;
+    --bg3: #1a2235;
+    --surface: #1e2d42;
+    --border: rgba(99,179,237,0.12);
+    --border2: rgba(99,179,237,0.22);
+    --text: #e8f0fe;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --accent: #3b82f6;
+    --accent2: #60a5fa;
+    --green: #10b981;
+    --green-bg: rgba(16,185,129,0.10);
+    --green-border: rgba(16,185,129,0.3);
+    --red: #ef4444;
+    --red-bg: rgba(239,68,68,0.08);
+    --red-border: rgba(239,68,68,0.28);
+    --amber: #f59e0b;
+    --amber-bg: rgba(245,158,11,0.10);
+    --purple: #8b5cf6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-size: 14px; min-height: 100vh; }
+
+  /* HEADER */
+  .header {
+    background: #0d1b2e;
+    border-bottom: 1px solid var(--border);
+    padding: 18px 28px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .logo { width: 38px; height: 38px; background: linear-gradient(135deg,#3b82f6,#8b5cf6); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; color: #fff; }
+  .header-title { font-size: 17px; font-weight: 700; }
+  .header-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .last-update { font-size: 11px; color: var(--text3); }
+  .refresh-btn { background: var(--accent); border: none; border-radius: 8px; color: #fff; font-size: 13px; font-weight: 600; padding: 8px 16px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all .2s; }
+  .refresh-btn:hover { background: var(--accent2); }
+  .spinner { display: none; width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* LOADING BAR */
+  #loading-bar { position: fixed; top: 0; left: 0; height: 3px; background: linear-gradient(90deg,var(--accent),var(--purple)); transition: width .3s ease; z-index: 999; width: 0%; }
+
+  /* STATS */
+  .stats-bar { display: flex; gap: 1px; background: var(--border); border-bottom: 1px solid var(--border); }
+  .stat-item { flex: 1; background: var(--bg2); padding: 14px 20px; }
+  .stat-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+  .stat-value { font-size: 20px; font-weight: 700; }
+  .stat-note { font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+  /* LEGEND */
+  .legend { display: flex; gap: 20px; padding: 9px 28px; background: var(--bg2); border-bottom: 1px solid var(--border); flex-wrap: wrap; align-items: center; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text3); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .legend-right { margin-left: auto; font-size: 10px; color: var(--text3); }
+
+  /* FILTERS */
+  .filters { padding: 12px 28px; background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .filter-label { font-size: 11px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+  .filter-btn { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text2); font-size: 12px; padding: 5px 12px; cursor: pointer; transition: all .15s; }
+  .filter-btn:hover { border-color: var(--accent); color: var(--accent2); }
+  .filter-btn.active { background: rgba(59,130,246,0.15); border-color: var(--accent); color: var(--accent2); font-weight: 600; }
+  .search-wrap { margin-left: auto; position: relative; }
+  .search-wrap svg { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--text3); width: 13px; height: 13px; pointer-events: none; }
+  #search { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; padding: 6px 12px 6px 30px; width: 190px; outline: none; transition: border .15s; }
+  #search:focus { border-color: var(--accent); }
+
+  /* TABLE */
+  .table-wrap { padding: 16px 28px 48px; overflow-x: auto; }
+  table { width: 100%; border-collapse: separate; border-spacing: 0 4px; min-width: 960px; }
+
+  thead th {
+    background: var(--bg2);
+    font-size: 10px; font-weight: 600; color: var(--text3);
+    text-transform: uppercase; letter-spacing: .5px;
+    padding: 9px 12px; text-align: right;
+    cursor: pointer; white-space: nowrap;
+    border-bottom: 1px solid var(--border);
+    user-select: none; transition: color .15s;
+  }
+  thead th:first-child { text-align: left; }
+  thead th:hover { color: var(--accent2); }
+  thead th.sort-asc::after { content: ' ↑'; color: var(--accent2); }
+  thead th.sort-desc::after { content: ' ↓'; color: var(--accent2); }
+
+  tbody tr { background: var(--bg2); transition: all .15s; cursor: pointer; }
+  tbody tr:hover { background: var(--surface); transform: translateX(2px); }
+
+  tbody td { padding: 11px 12px; text-align: right; vertical-align: middle; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  tbody td:first-child { text-align: left; border-left: 1px solid var(--border); border-radius: 8px 0 0 8px; padding-left: 14px; }
+  tbody td:last-child { border-right: 1px solid var(--border); border-radius: 0 8px 8px 0; padding-right: 14px; }
+
+  /* Earnings row highlights */
+  tbody tr.beat { background: linear-gradient(90deg, rgba(16,185,129,0.09) 0%, var(--bg2) 35%); }
+  tbody tr.beat td:first-child { border-left: 3px solid var(--green); }
+  tbody tr.miss { background: linear-gradient(90deg, rgba(239,68,68,0.07) 0%, var(--bg2) 35%); }
+  tbody tr.miss td:first-child { border-left: 3px solid var(--red); }
+
+  /* Ticker cell */
+  .ticker-cell { display: flex; align-items: center; gap: 9px; }
+  .ticker-badge { background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25); border-radius: 5px; font-weight: 700; font-size: 11px; color: var(--accent2); padding: 3px 7px; min-width: 50px; text-align: center; letter-spacing: .4px; }
+  .company-name { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px; }
+
+  .price-cell { font-weight: 600; font-size: 14px; color: var(--text); }
+  .pct { font-size: 12px; font-weight: 600; }
+  .pct.pos { color: var(--green); }
+  .pct.neg { color: var(--red); }
+  .pct.na { color: var(--text3); font-weight: 400; font-size: 11px; }
+
+  /* Earnings badge */
+  .earn-badge { display: inline-flex; align-items: center; gap: 3px; border-radius: 5px; font-size: 10px; font-weight: 700; padding: 3px 7px; white-space: nowrap; letter-spacing: .3px; }
+  .earn-badge.beat { background: var(--green-bg); border: 1px solid var(--green-border); color: var(--green); }
+  .earn-badge.miss { background: var(--red-bg); border: 1px solid var(--red-border); color: var(--red); }
+  .earn-badge.inline { background: var(--amber-bg); border: 1px solid rgba(245,158,11,.28); color: var(--amber); }
+  .earn-badge.pending { background: var(--bg3); border: 1px solid var(--border); color: var(--text3); }
+
+  /* Skeleton */
+  .skeleton { background: linear-gradient(90deg, var(--bg2) 25%, var(--surface) 50%, var(--bg2) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 3px; height: 13px; display: inline-block; }
+  @keyframes shimmer { to { background-position: -200% center; } }
+
+  /* Modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,10,0.75); z-index: 200; backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: 16px; padding: 28px; width: 540px; max-width: 95vw; max-height: 88vh; overflow-y: auto; position: relative; }
+  .modal-close { position: absolute; top: 14px; right: 14px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text2); cursor: pointer; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 15px; transition: all .15s; }
+  .modal-close:hover { color: var(--text); }
+  .modal-ticker { font-size: 26px; font-weight: 800; }
+  .modal-company { font-size: 13px; color: var(--text2); margin-top: 2px; }
+  .modal-price { font-size: 20px; font-weight: 600; color: var(--accent2); margin-top: 6px; }
+  .modal-section { margin-top: 20px; }
+  .modal-section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--text3); margin-bottom: 10px; }
+  .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .modal-stat { background: var(--bg3); border-radius: 8px; padding: 10px 14px; }
+  .modal-stat-label { font-size: 10px; color: var(--text3); }
+  .modal-stat-val { font-size: 15px; font-weight: 600; margin-top: 2px; }
+  .earn-card { border-radius: 10px; padding: 14px 16px; border: 1px solid var(--border); background: var(--bg3); }
+  .earn-card.beat { border-color: var(--green-border); background: var(--green-bg); }
+  .earn-card.miss { border-color: var(--red-border); background: var(--red-bg); }
+  .earn-card-title { font-size: 16px; font-weight: 700; }
+  .earn-card-meta { font-size: 12px; color: var(--text2); margin-top: 6px; line-height: 1.7; }
+  .ext-links { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  .ext-link { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text2); text-decoration: none; font-size: 11px; padding: 6px 11px; display: flex; align-items: center; gap: 5px; transition: all .15s; }
+  .ext-link:hover { border-color: var(--accent); color: var(--accent2); }
+
+  .no-results { text-align: center; padding: 60px 20px; color: var(--text3); }
+
+  /* Error banner */
+  .error-banner { background: var(--red-bg); border: 1px solid var(--red-border); border-radius: 8px; color: var(--red); padding: 12px 18px; margin: 16px 28px; font-size: 13px; display: none; }
+
+  @media (max-width: 640px) {
+    .header { padding: 14px 16px; }
+    .table-wrap { padding: 12px 12px 40px; }
+    .filters, .legend { padding: 10px 16px; }
+    .stats-bar { flex-wrap: wrap; }
+    .stat-item { min-width: 50%; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loading-bar"></div>
+
+<header class="header">
+  <div class="header-left">
+    <div class="logo">L35</div>
+    <div>
+      <div class="header-title">Long Term 35 Portfolio</div>
+      <div class="header-sub">End-of-day snapshot · Earnings intelligence · Data from your Google Sheet</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="last-update" id="last-update">–</div>
+    <button class="refresh-btn" onclick="loadAll()">
+      <div class="spinner" id="spinner"></div>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12a8 8 0 018-8V2L14 4l-2 2-2-2v2a6 6 0 100 12H6"/></svg>
+      Refresh
+    </button>
+  </div>
+</header>
+
+<div class="stats-bar" id="stats-bar">
+  <div class="stat-item">
+    <div class="stat-label">Stocks tracked</div>
+    <div class="stat-value" id="stat-count">–</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-label">Avg today</div>
+    <div class="stat-value" id="stat-today" style="color:var(--text)">–</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-label">Earnings beats</div>
+    <div class="stat-value" style="color:var(--green)" id="stat-beats">–</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-label">Earnings misses</div>
+    <div class="stat-value" style="color:var(--red)" id="stat-misses">–</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-label">Top performer today</div>
+    <div class="stat-value" style="color:var(--green);font-size:14px" id="stat-top">–</div>
+    <div class="stat-note" id="stat-top-name"></div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> Earnings beat</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div> Earnings miss</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div> Inline / pending</div>
+  <div class="legend-right">Sheet data loads instantly · Earnings load in background · Click any row for details</div>
+</div>
+
+<div class="filters">
+  <span class="filter-label">Filter:</span>
+  <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+  <button class="filter-btn" onclick="setFilter('beat',this)">🟢 Beats</button>
+  <button class="filter-btn" onclick="setFilter('miss',this)">🔴 Misses</button>
+  <button class="filter-btn" onclick="setFilter('pos',this)">↑ Up today</button>
+  <button class="filter-btn" onclick="setFilter('neg',this)">↓ Down today</button>
+  <div class="search-wrap">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input id="search" type="text" placeholder="Search ticker…" oninput="filterSearch(this.value)">
+  </div>
+</div>
+
+<div class="error-banner" id="error-banner">
+  ⚠️ Could not load sheet data. Make sure the Apps Script is deployed with "Anyone" access and the URL is correct.
+</div>
+
+<div class="table-wrap">
+  <table id="stock-table">
+    <thead>
+      <tr>
+        <th onclick="sortBy('ticker',this)">Ticker</th>
+        <th onclick="sortBy('price',this)">Price</th>
+        <th onclick="sortBy('today',this)">Today</th>
+        <th onclick="sortBy('week1',this)">1 Week</th>
+        <th onclick="sortBy('week2',this)">2 Weeks</th>
+        <th onclick="sortBy('month1',this)">1 Month</th>
+        <th onclick="sortBy('week6',this)">6 Weeks</th>
+        <th onclick="sortBy('month3',this)">3 Months</th>
+        <th onclick="sortBy('month6',this)">6 Months</th>
+        <th onclick="sortBy('ttm',this)">TTM</th>
+        <th>Earnings</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div class="no-results" id="no-results" style="display:none">No stocks match your filter.</div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script>
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzEInIzsFw3Hrz61a13aBRN5s38D9TUmn8nB1pg4sRbBGvsKPh1zxDiyEbUER6-wSt2/exec';
+
+const COMPANY_NAMES = {
+  NVDA:'NVIDIA', AVGO:'Broadcom', AMD:'Advanced Micro Devices', MU:'Micron Technology',
+  TSM:'Taiwan Semiconductor', INTC:'Intel', KLAC:'KLA Corporation', LRCX:'Lam Research',
+  LSCC:'Lattice Semiconductor', AMAT:'Applied Materials', ASX:'ASE Technology',
+  QCOM:'Qualcomm', MRVL:'Marvell Technology', CRS:'Carpenter Technology', CAMT:'Camtek',
+  CAT:'Caterpillar', EME:'EMCOR Group', FIX:'Comfort Systems USA', FN:'Fabrinet',
+  AXON:'Axon Enterprise', NVMI:'Nova Ltd', PWR:'Quanta Services', SNEX:'StoneX Group',
+  SPXC:'SPX Technologies', STRL:'Sterling Infrastructure', ASML:'ASML Holding',
+  ANET:'Arista Networks', LLY:'Eli Lilly', GE:'GE Aerospace', HWM:'Howmet Aerospace',
+  BE:'Bloom Energy', VRT:'Vertiv Holdings', ARM:'ARM Holdings', GEV:'GE Vernova'
+};
+
+let sheetRows = [];
+let earningsData = {};
+let currentFilter = 'all';
+let currentSearch = '';
+let sortKey = 'today';
+let sortDir = -1;
+let sortThEl = null;
+
+function parsePct(v) {
+  if (v === null || v === undefined || v === '' || v === 'N/A') return null;
+  if (typeof v === 'number') return v * (Math.abs(v) > 1.5 ? 1 : 100);
+  const s = String(v).replace('%','').replace(',','').trim();
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
+function parsePrice(v) {
+  if (!v && v !== 0) return null;
+  if (typeof v === 'number') return v;
+  const s = String(v).replace(/[$,]/g,'').trim();
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
+function fmtPct(v) {
+  if (v === null || v === undefined) return '<span class="pct na">–</span>';
+  const cls = v > 0 ? 'pos' : v < 0 ? 'neg' : 'na';
+  const sign = v > 0 ? '+' : '';
+  return `<span class="pct ${cls}">${sign}${v.toFixed(2)}%</span>`;
+}
+
+function fmtPrice(v) {
+  if (v === null) return '<span class="pct na">–</span>';
+  return '$' + v.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function earnBadge(e) {
+  if (!e) return '<span class="earn-badge pending">Loading…</span>';
+  if (e.status === 'beat') return '<span class="earn-badge beat">✦ BEAT</span>';
+  if (e.status === 'miss') return '<span class="earn-badge miss">✗ MISS</span>';
+  return '<span class="earn-badge inline">~ Inline</span>';
+}
+
+function buildRow(row) {
+  const e = earningsData[row.ticker];
+  const earnClass = e?.status === 'beat' ? 'beat' : e?.status === 'miss' ? 'miss' : '';
+  const price = parsePrice(row.price);
+  const today = parsePct(row.today);
+  const w1 = parsePct(row.week1);
+  const w2 = parsePct(row.week2);
+  const m1 = parsePct(row.month1);
+  const w6 = parsePct(row.week6);
+  const m3 = parsePct(row.month3);
+  const m6 = parsePct(row.month6);
+  const ttm = parsePct(row.ttm);
+
+  return `<tr class="${earnClass}" onclick="openModal('${row.ticker}')">
+    <td><div class="ticker-cell">
+      <span class="ticker-badge">${row.ticker}</span>
+      <span class="company-name">${COMPANY_NAMES[row.ticker] || ''}</span>
+    </div></td>
+    <td class="price-cell">${price !== null ? fmtPrice(price) : '<span class="skeleton" style="width:60px">&nbsp;</span>'}</td>
+    <td>${fmtPct(today)}</td>
+    <td>${fmtPct(w1)}</td>
+    <td>${fmtPct(w2)}</td>
+    <td>${fmtPct(m1)}</td>
+    <td>${fmtPct(w6)}</td>
+    <td>${fmtPct(m3)}</td>
+    <td>${fmtPct(m6)}</td>
+    <td>${fmtPct(ttm)}</td>
+    <td>${earnBadge(e)}</td>
+  </tr>`;
+}
+
+function getVal(row, key) {
+  if (key === 'ticker') return row.ticker;
+  if (key === 'price') return parsePrice(row.price);
+  return parsePct(row[key]);
+}
+
+function renderTable() {
+  let rows = sheetRows.filter(row => {
+    const e = earningsData[row.ticker];
+    if (currentSearch && !row.ticker.toLowerCase().includes(currentSearch) &&
+        !(COMPANY_NAMES[row.ticker]||'').toLowerCase().includes(currentSearch)) return false;
+    if (currentFilter === 'beat') return e?.status === 'beat';
+    if (currentFilter === 'miss') return e?.status === 'miss';
+    if (currentFilter === 'pos') return parsePct(row.today) > 0;
+    if (currentFilter === 'neg') return parsePct(row.today) < 0;
+    return true;
+  });
+
+  rows = rows.sort((a, b) => {
+    let va = getVal(a, sortKey), vb = getVal(b, sortKey);
+    if (sortKey === 'ticker') return sortDir * String(va).localeCompare(String(vb));
+    if (va == null && vb == null) return 0;
+    if (va == null) return 1; if (vb == null) return -1;
+    return sortDir * (va - vb);
+  });
+
+  document.getElementById('no-results').style.display = rows.length ? 'none' : 'block';
+  document.getElementById('tbody').innerHTML = rows.map(buildRow).join('');
+  updateStats();
+}
+
+function updateStats() {
+  document.getElementById('stat-count').textContent = sheetRows.length || '–';
+  const todays = sheetRows.map(r => parsePct(r.today)).filter(v => v !== null);
+  if (todays.length) {
+    const avg = todays.reduce((a,b)=>a+b,0) / todays.length;
+    const el = document.getElementById('stat-today');
+    el.textContent = (avg>0?'+':'') + avg.toFixed(2) + '%';
+    el.style.color = avg > 0 ? 'var(--green)' : avg < 0 ? 'var(--red)' : 'var(--text)';
+  }
+  const beats = Object.values(earningsData).filter(e=>e?.status==='beat').length;
+  const misses = Object.values(earningsData).filter(e=>e?.status==='miss').length;
+  document.getElementById('stat-beats').textContent = beats || '–';
+  document.getElementById('stat-misses').textContent = misses || '–';
+
+  const top = sheetRows.filter(r=>parsePct(r.today)!==null).sort((a,b)=>parsePct(b.today)-parsePct(a.today))[0];
+  if (top) {
+    const v = parsePct(top.today);
+    document.getElementById('stat-top').textContent = `${top.ticker} +${v.toFixed(2)}%`;
+    document.getElementById('stat-top-name').textContent = COMPANY_NAMES[top.ticker] || '';
+  }
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable();
+}
+
+function filterSearch(v) {
+  currentSearch = v.toLowerCase();
+  renderTable();
+}
+
+function sortBy(key, th) {
+  if (sortKey === key) sortDir *= -1;
+  else { sortKey = key; sortDir = -1; }
+  document.querySelectorAll('thead th').forEach(t => t.classList.remove('sort-asc','sort-desc'));
+  th.classList.add(sortDir === 1 ? 'sort-asc' : 'sort-desc');
+  renderTable();
+}
+
+async function fetchEarnings(ticker) {
+  try {
+    const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=earningsHistory`;
+    const r = await fetch(url, {headers:{Accept:'application/json'}});
+    if (!r.ok) return {status:'inline'};
+    const data = await r.json();
+    const hist = data?.quoteSummary?.result?.[0]?.earningsHistory?.history;
+    if (!hist || !hist.length) return {status:'inline'};
+    const latest = hist[hist.length - 1];
+    const est = latest?.epsEstimate?.raw;
+    const act = latest?.epsActual?.raw;
+    const surp = latest?.surprisePercent?.raw;
+    const quarter = latest?.period || '';
+    if (est == null || act == null) return {status:'inline'};
+    let status = 'inline';
+    if (surp != null) { if (surp > 3) status = 'beat'; else if (surp < -3) status = 'miss'; }
+    else { if (act > est * 1.03) status = 'beat'; else if (act < est * 0.97) status = 'miss'; }
+    return { status, epsEst: est.toFixed(2), epsAct: act.toFixed(2), surprise: surp?.toFixed(1), quarter };
+  } catch(e) { return {status:'inline'}; }
+}
+
+function openModal(ticker) {
+  const row = sheetRows.find(r => r.ticker === ticker);
+  const e = earningsData[ticker];
+  const price = row ? parsePrice(row.price) : null;
+  const today = row ? parsePct(row.today) : null;
+
+  const perfRows = [
+    ['Today', row?.today], ['1 Week', row?.week1], ['2 Weeks', row?.week2],
+    ['1 Month', row?.month1], ['6 Weeks', row?.week6],
+    ['3 Months', row?.month3], ['6 Months', row?.month6], ['TTM', row?.ttm]
+  ];
+
+  let earnHTML = '<div class="earn-card"><div class="earn-card-title" style="color:var(--text3)">Loading earnings…</div></div>';
+  if (e) {
+    if (e.status === 'beat') {
+      earnHTML = `<div class="earn-card beat">
+        <div class="earn-card-title" style="color:var(--green)">✦ Earnings Beat</div>
+        <div class="earn-card-meta">
+          Quarter: <b>${e.quarter || 'Latest'}</b><br>
+          EPS Estimate: $${e.epsEst} &nbsp;·&nbsp; EPS Actual: $${e.epsAct}<br>
+          ${e.surprise ? `Surprise: <b>+${e.surprise}%</b> above consensus` : 'Beat analyst estimates'}
+        </div>
+      </div>`;
+    } else if (e.status === 'miss') {
+      earnHTML = `<div class="earn-card miss">
+        <div class="earn-card-title" style="color:var(--red)">✗ Earnings Miss</div>
+        <div class="earn-card-meta">
+          Quarter: <b>${e.quarter || 'Latest'}</b><br>
+          EPS Estimate: $${e.epsEst} &nbsp;·&nbsp; EPS Actual: $${e.epsAct}<br>
+          ${e.surprise ? `Surprise: <b>${e.surprise}%</b> below consensus` : 'Missed analyst estimates'}
+        </div>
+      </div>`;
+    } else {
+      earnHTML = `<div class="earn-card"><div class="earn-card-title" style="color:var(--amber)">~ Inline / Pending</div><div class="earn-card-meta">Results in line with expectations, or upcoming quarter.</div></div>`;
+    }
+  }
+
+  document.getElementById('modal-content').innerHTML = `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:4px">
+      <div>
+        <div class="modal-ticker">${ticker}</div>
+        <div class="modal-company">${COMPANY_NAMES[ticker] || ''}</div>
+        ${price !== null ? `<div class="modal-price">${fmtPrice(price)}</div>` : ''}
+      </div>
+      ${today !== null ? `<span style="font-size:22px;font-weight:700;color:${today>=0?'var(--green)':'var(--red)'}">${today>=0?'+':''}${today.toFixed(2)}%</span>` : ''}
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-title">Performance</div>
+      <div class="modal-grid">
+        ${perfRows.map(([l,v]) => {
+          const n = parsePct(v);
+          return `<div class="modal-stat">
+            <div class="modal-stat-label">${l}</div>
+            <div class="modal-stat-val" style="color:${n==null?'var(--text3)':n>0?'var(--green)':n<0?'var(--red)':'var(--text)'}">
+              ${n==null?'–':(n>0?'+':'')+n.toFixed(2)+'%'}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-title">Latest Earnings</div>
+      ${earnHTML}
+    </div>
+    <div class="ext-links">
+      <a class="ext-link" href="https://finance.yahoo.com/quote/${ticker}" target="_blank">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Yahoo Finance
+      </a>
+      <a class="ext-link" href="https://finviz.com/quote.ashx?t=${ticker}" target="_blank">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Finviz
+      </a>
+      <a class="ext-link" href="https://www.earningswhispers.com/stocks/${ticker.toLowerCase()}" target="_blank">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Earnings Whispers
+      </a>
+    </div>
+  `;
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('modal')) {
+    document.getElementById('modal').classList.remove('open');
+  }
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal({}); });
+
+async function loadAll() {
+  const bar = document.getElementById('loading-bar');
+  const spinner = document.getElementById('spinner');
+  const errBanner = document.getElementById('error-banner');
+  spinner.style.display = 'block';
+  errBanner.style.display = 'none';
+  bar.style.width = '10%';
+
+  // PHASE 1 — load sheet data (single fast request)
+  try {
+    const resp = await fetch(SHEET_URL);
+    if (!resp.ok) throw new Error('Sheet request failed');
+    const data = await resp.json();
+    sheetRows = (data.rows || []).filter(r => r.ticker && r.ticker !== 'N/A' && r.ticker.trim() !== '');
+    const updated = data.updated ? new Date(data.updated).toLocaleString() : '–';
+    document.getElementById('last-update').textContent = 'Sheet: ' + updated;
+    bar.style.width = '35%';
+    renderTable();
+  } catch(err) {
+    console.error('Sheet load error:', err);
+    errBanner.style.display = 'block';
+    spinner.style.display = 'none';
+    bar.style.width = '0%';
+    return;
+  }
+
+  // PHASE 2 — fetch earnings in background batches (non-blocking)
+  const tickers = sheetRows.map(r => r.ticker);
+  let done = 0;
+  const batchSize = 6;
+  for (let i = 0; i < tickers.length; i += batchSize) {
+    const batch = tickers.slice(i, i + batchSize);
+    await Promise.all(batch.map(async t => {
+      earningsData[t] = await fetchEarnings(t);
+      done++;
+      bar.style.width = (35 + (done / tickers.length * 63)) + '%';
+      renderTable();
+    }));
+    await new Promise(r => setTimeout(r, 80));
+  }
+
+  bar.style.width = '100%';
+  setTimeout(() => { bar.style.width = '0%'; }, 500);
+  spinner.style.display = 'none';
+}
+
+loadAll();
+</script>
+</body>
+</html>
