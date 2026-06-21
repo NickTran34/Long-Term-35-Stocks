@@ -68,13 +68,13 @@ jobs:
                 <table style="width:100%;border-collapse:collapse;margin-bottom:28px;">
                   <tr>
                     <td style="padding-right:8px;">
-                      <a href="https://${{ github.repository_owner }}.github.io/longterm35/snapshot.html"
+                      <a href="https://${{ github.repository_owner }}.github.io/Long-Term-35-Stocks/snapshot.html"
                          style="display:block;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;text-decoration:none;padding:14px 20px;border-radius:10px;font-weight:700;font-size:14px;text-align:center;">
                         📊 View Snapshot
                       </a>
                     </td>
                     <td style="padding-left:8px;">
-                      <a href="https://${{ github.repository_owner }}.github.io/longterm35/index.html"
+                      <a href="https://${{ github.repository_owner }}.github.io/Long-Term-35-Stocks/index.html"
                          style="display:block;background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.4);color:#a78bfa;text-decoration:none;padding:14px 20px;border-radius:10px;font-weight:700;font-size:14px;text-align:center;">
                         ⚡ Live Dashboard + Analysis
                       </a>
