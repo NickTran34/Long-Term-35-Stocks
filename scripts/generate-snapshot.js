@@ -36,13 +36,16 @@ async function fetchQuote(ticker) {
 
     const meta = result.meta;
     const price = meta.regularMarketPrice;
-    const prevClose = meta.chartPreviousClose || meta.previousClose;
-    const todayPct = prevClose ? ((price - prevClose) / prevClose * 100) : null;
 
     const closes = result.indicators?.quote?.[0]?.close || [];
     const timestamps = result.timestamp || [];
     const valid = closes.map((c,i) => ({c, t: timestamps[i]})).filter(x => x.c != null);
     const n = valid.length;
+
+    // FIX: chartPreviousClose is unreliable over long ranges — use the actual
+    // second-to-last daily close from the price array instead
+    const actualPrevClose = n >= 2 ? valid[n - 2].c : (meta.chartPreviousClose || meta.previousClose);
+    const todayPct = actualPrevClose ? ((price - actualPrevClose) / actualPrevClose * 100) : null;
 
     function pctFrom(days) {
       if (n < days + 1) return null;
