@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LT35">
+<meta name="theme-color" content="#0a0e1a">
+<title>Long Term 35 — Live Dashboard</title>
+<style>
+  :root {
+    --bg:#0a0e1a;--bg2:#111827;--bg3:#1a2235;--surface:#1e2d42;
+    --border:rgba(99,179,237,0.12);--border2:rgba(99,179,237,0.25);
+    --text:#e8f0fe;--text2:#cbd5e1;--text3:#64748b;
+    --accent:#3b82f6;--accent2:#60a5fa;
+    --green:#10b981;--green-bg:rgba(16,185,129,0.10);--green-border:rgba(16,185,129,0.3);
+    --red:#ef4444;--red-bg:rgba(239,68,68,0.08);--red-border:rgba(239,68,68,0.28);
+    --amber:#f59e0b;--amber-bg:rgba(245,158,11,0.10);
+    --orange:#f97316;--orange-bg:rgba(249,115,22,0.10);--orange-border:rgba(249,115,22,0.3);
+    --purple:#8b5cf6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;font-size:14px;min-height:100vh;}
+  .header{background:#0d1b2e;border-bottom:1px solid var(--border);padding:18px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+  .header-left{display:flex;align-items:center;gap:14px;}
+  .logo{width:38px;height:38px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:#fff;}
+  .header-title{font-size:17px;font-weight:700;color:var(--text);}
+  .header-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+  .header-right{display:flex;align-items:center;gap:12px;}
+  .last-update{font-size:11px;color:var(--text3);}
+  .refresh-btn{background:var(--accent);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:600;padding:8px 16px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s;}
+  .refresh-btn:hover{background:var(--accent2);}
+  .spinner{display:none;width:13px;height:13px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  #loading-bar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--purple));transition:width .4s ease;z-index:999;width:0%;}
+  .status-banner{padding:8px 28px;font-size:12px;color:var(--text2);background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+  .status-dot{width:7px;height:7px;border-radius:50%;background:var(--amber);animation:pulse 1.5s infinite;flex-shrink:0;}
+  .status-dot.done{background:var(--green);animation:none;}
+  .status-dot.error{background:var(--red);animation:none;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+  .stats-bar{display:flex;gap:1px;background:var(--border);border-bottom:1px solid var(--border);}
+  .stat-item{flex:1;background:var(--bg2);padding:14px 20px;}
+  .stat-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+  .stat-value{font-size:20px;font-weight:700;color:var(--text);}
+  .stat-note{font-size:10px;color:var(--text3);margin-top:2px;}
+  .legend{display:flex;gap:20px;padding:9px 28px;background:var(--bg2);border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center;}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3);}
+  .legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+  .legend-right{margin-left:auto;font-size:10px;color:var(--text3);}
+  .filters{padding:12px 28px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .filter-label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+  .filter-btn{background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:12px;padding:5px 12px;cursor:pointer;transition:all .15s;}
+  .filter-btn:hover{border-color:var(--accent);color:var(--accent2);}
+  .filter-btn.active{background:rgba(59,130,246,0.15);border-color:var(--accent);color:var(--accent2);font-weight:600;}
+  .search-wrap{margin-left:auto;position:relative;}
+  .search-wrap svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);width:13px;height:13px;pointer-events:none;}
+  #search{background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:6px 12px 6px 30px;width:190px;outline:none;transition:border .15s;}
+  #search:focus{border-color:var(--accent);}
+  .table-wrap{padding:16px 28px 48px;overflow-x:auto;}
+  table{width:100%;border-collapse:separate;border-spacing:0 4px;min-width:980px;}
+  thead th{background:var(--bg2);font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;padding:9px 12px;text-align:right;cursor:pointer;white-space:nowrap;border-bottom:1px solid var(--border);user-select:none;transition:color .15s;}
+  thead th:first-child{text-align:left;}
+  thead th:hover{color:var(--accent2);}
+  thead th.sort-asc::after{content:' ↑';color:var(--accent2);}
+  thead th.sort-desc::after{content:' ↓';color:var(--accent2);}
+  tbody tr{background:var(--bg2);transition:all .15s;cursor:pointer;}
+  tbody tr:hover{background:var(--surface);transform:translateX(2px);}
+  tbody td{padding:11px 12px;text-align:right;vertical-align:middle;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+  tbody td:first-child{text-align:left;border-left:1px solid var(--border);border-radius:8px 0 0 8px;padding-left:14px;}
+  tbody td:last-child{border-right:1px solid var(--border);border-radius:0 8px 8px 0;padding-right:14px;}
+  tbody tr.beat{background:linear-gradient(90deg,rgba(16,185,129,0.09) 0%,var(--bg2) 35%);}
+  tbody tr.beat td:first-child{border-left:3px solid var(--green);}
+  tbody tr.miss{background:linear-gradient(90deg,rgba(239,68,68,0.07) 0%,var(--bg2) 35%);}
+  tbody tr.miss td:first-child{border-left:3px solid var(--red);}
+  tbody tr.momentum-loss{background:linear-gradient(90deg,rgba(249,115,22,0.08) 0%,var(--bg2) 35%);}
+  tbody tr.momentum-loss td:first-child{border-left:3px solid var(--orange);}
+  .ticker-cell{display:flex;align-items:center;gap:9px;}
+  .ticker-badge{background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.25);border-radius:5px;font-weight:700;font-size:11px;color:var(--accent2);padding:3px 7px;min-width:50px;text-align:center;letter-spacing:.4px;}
+  .ticker-badge.momentum-warn{background:rgba(249,115,22,0.15);border-color:rgba(249,115,22,0.4);color:var(--orange);}
+  .company-name{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px;}
+  .price-cell{font-weight:600;font-size:14px;color:var(--text);}
+  .pct{font-size:12px;font-weight:600;}
+  .pct.pos{color:var(--green);}
+  .pct.neg{color:var(--red);}
+  .pct.na{color:var(--text3);font-weight:400;font-size:11px;}
+  .earn-badge{display:inline-flex;align-items:center;gap:3px;border-radius:5px;font-size:10px;font-weight:700;padding:3px 7px;white-space:nowrap;}
+  .earn-badge.beat{background:var(--green-bg);border:1px solid var(--green-border);color:var(--green);}
+  .earn-badge.miss{background:var(--red-bg);border:1px solid var(--red-border);color:var(--red);}
+  .earn-badge.inline{background:var(--amber-bg);border:1px solid rgba(245,158,11,.28);color:var(--amber);}
+  .earn-badge.pending{background:var(--bg3);border:1px solid var(--border);color:var(--text3);}
+  .momentum-badge{display:inline-flex;align-items:center;gap:3px;border-radius:5px;font-size:10px;font-weight:700;padding:3px 7px;white-space:nowrap;}
+  .momentum-badge.warn{background:var(--orange-bg);border:1px solid var(--orange-border);color:var(--orange);}
+  .momentum-badge.ok{background:var(--green-bg);border:1px solid var(--green-border);color:var(--green);}
+  .momentum-badge.neutral{background:var(--bg3);border:1px solid var(--border);color:var(--text3);}
+  .skeleton{background:linear-gradient(90deg,var(--bg2) 25%,var(--surface) 50%,var(--bg2) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:3px;height:13px;display:inline-block;}
+  @keyframes shimmer{to{background-position:-200% center;}}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,10,0.8);z-index:200;backdrop-filter:blur(4px);align-items:center;justify-content:center;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:#0f1c2e;border:1px solid var(--border2);border-radius:16px;padding:28px;width:580px;max-width:95vw;max-height:88vh;overflow-y:auto;position:relative;}
+  .modal-close{position:absolute;top:14px;right:14px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:#fff;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+  .modal-close:hover{background:var(--surface);}
+  .modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);}
+  .modal-ticker{font-size:28px;font-weight:800;color:#fff;}
+  .modal-company{font-size:13px;color:var(--text2);margin-top:3px;}
+  .modal-price{font-size:22px;font-weight:700;color:var(--accent2);margin-top:6px;}
+  .modal-today{font-size:24px;font-weight:700;}
+  .modal-section{margin-top:18px;}
+  .modal-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#94a3b8;margin-bottom:10px;}
+  .perf-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .perf-stat{background:#1a2a3f;border:1px solid var(--border2);border-radius:8px;padding:10px 12px;}
+  .perf-stat-label{font-size:10px;color:#94a3b8;font-weight:500;margin-bottom:4px;}
+  .perf-stat-val{font-size:16px;font-weight:700;}
+  .earn-card{border-radius:10px;padding:16px;border:1px solid var(--border2);background:#1a2a3f;}
+  .earn-card.beat{border-color:var(--green-border);background:rgba(16,185,129,0.08);}
+  .earn-card.miss{border-color:var(--red-border);background:rgba(239,68,68,0.07);}
+  .earn-card.inline-card{border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.07);}
+  .earn-card-title{font-size:16px;font-weight:700;margin-bottom:8px;}
+  .earn-card-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.06);}
+  .earn-card-row:last-child{border-bottom:none;}
+  .earn-card-key{font-size:12px;color:#94a3b8;}
+  .earn-card-val{font-size:13px;font-weight:600;color:#fff;}
+  .momentum-card{border-radius:10px;padding:16px;border:1px solid var(--orange-border);background:rgba(249,115,22,0.07);}
+  .momentum-card.ok{border-color:var(--green-border);background:rgba(16,185,129,0.06);}
+  .momentum-card-title{font-size:14px;font-weight:700;color:var(--orange);margin-bottom:8px;}
+  .momentum-card-title.ok{color:var(--green);}
+  .momentum-summary{font-size:13px;color:#cbd5e1;line-height:1.65;}
+  .momentum-metrics{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+  .momentum-metric{background:rgba(0,0,0,0.2);border-radius:6px;padding:6px 10px;}
+  .momentum-metric-label{font-size:10px;color:#64748b;}
+  .momentum-metric-val{font-size:13px;font-weight:600;color:#fff;}
+  .ext-links{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;}
+  .ext-link{background:#1a2a3f;border:1px solid var(--border2);border-radius:6px;color:#cbd5e1;text-decoration:none;font-size:11px;padding:7px 12px;display:flex;align-items:center;gap:5px;transition:all .15s;}
+  .ext-link:hover{border-color:var(--accent);color:var(--accent2);}
+  .no-results{text-align:center;padding:60px 20px;color:var(--text3);}
+  .mobile-cards{display:none;padding:12px 14px 48px;}
+  .stock-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:all .15s;}
+  .stock-card:active{transform:scale(0.98);}
+  .stock-card.beat{border-left:3px solid var(--green);background:linear-gradient(135deg,rgba(16,185,129,0.07) 0%,var(--bg2) 50%);}
+  .stock-card.miss{border-left:3px solid var(--red);background:linear-gradient(135deg,rgba(239,68,68,0.06) 0%,var(--bg2) 50%);}
+  .stock-card.momentum-loss{border-left:3px solid var(--orange);background:linear-gradient(135deg,rgba(249,115,22,0.07) 0%,var(--bg2) 50%);}
+  .card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .card-ticker-wrap{display:flex;align-items:center;gap:10px;}
+  .card-ticker{font-size:15px;font-weight:800;color:var(--accent2);background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.25);border-radius:6px;padding:4px 9px;}
+  .card-ticker.momentum-warn{color:var(--orange);background:rgba(249,115,22,0.12);border-color:rgba(249,115,22,0.3);}
+  .card-company{font-size:12px;color:var(--text2);}
+  .card-price-wrap{text-align:right;}
+  .card-price{font-size:16px;font-weight:700;color:var(--text);}
+  .card-today{font-size:14px;font-weight:700;}
+  .card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px;}
+  .card-stat{background:rgba(255,255,255,0.04);border-radius:6px;padding:6px 8px;}
+  .card-stat-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;}
+  .card-stat-val{font-size:12px;font-weight:600;}
+  .card-badges{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+  .card-tap-hint{font-size:10px;color:var(--text3);margin-left:auto;}
+  @media(max-width:700px){
+    .header{padding:12px 14px;}
+    .header-title{font-size:15px;}
+    .header-sub,.last-update{display:none;}
+    .stats-bar{flex-wrap:wrap;}
+    .stat-item{min-width:50%;padding:11px 14px;border-bottom:1px solid var(--border);}
+    .stat-value{font-size:18px;}
+    .legend{display:none;}
+    .filters{padding:10px 14px;gap:7px;}
+    .filter-label{display:none;}
+    .filter-btn{font-size:11px;padding:5px 10px;}
+    .search-wrap{margin-left:0;width:100%;}
+    #search{width:100%;}
+    .table-wrap{display:none;}
+    .mobile-cards{display:block;}
+    .perf-grid{grid-template-columns:repeat(2,1fr);}
+    .modal{padding:20px 16px;}
+    .modal-ticker{font-size:22px;}
+  }
+</style>
+</head>
+<body>
+<div id="loading-bar"></div>
+<header class="header">
+  <div class="header-left">
+    <div class="logo">L35</div>
+    <div>
+      <div class="header-title">Long Term 35 Portfolio</div>
+      <div class="header-sub">Live prices · Earnings · Momentum · Data from Yahoo Finance</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="last-update" id="last-update">–</div>
+    <button class="refresh-btn" onclick="loadAll()">
+      <div class="spinner" id="spinner"></div>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12a8 8 0 018-8V2L14 4l-2 2-2-2v2a6 6 0 100 12H6"/></svg>
+      Refresh
+    </button>
+  </div>
+</header>
+<div class="status-banner" id="status-banner">
+  <div class="status-dot" id="status-dot"></div>
+  <span id="status-text">Loading…</span>
+</div>
+<div class="stats-bar">
+  <div class="stat-item"><div class="stat-label">Stocks</div><div class="stat-value">34</div></div>
+  <div class="stat-item"><div class="stat-label">Avg today</div><div class="stat-value" id="stat-today">–</div></div>
+  <div class="stat-item"><div class="stat-label">Earnings beats</div><div class="stat-value" style="color:var(--green)" id="stat-beats">–</div></div>
+  <div class="stat-item"><div class="stat-label">Earnings misses</div><div class="stat-value" style="color:var(--red)" id="stat-misses">–</div></div>
+  <div class="stat-item"><div class="stat-label">Losing momentum</div><div class="stat-value" style="color:var(--orange)" id="stat-momentum">–</div></div>
+  <div class="stat-item"><div class="stat-label">Top performer</div><div class="stat-value" style="color:var(--green);font-size:14px" id="stat-top">–</div><div class="stat-note" id="stat-top-name"></div></div>
+</div>
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Earnings beat</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Earnings miss</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Inline / pending</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div>Losing momentum</div>
+  <div class="legend-right">Click any row for full earnings detail · Data via Yahoo Finance</div>
+</div>
+<div class="filters">
+  <span class="filter-label">Filter:</span>
+  <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+  <button class="filter-btn" onclick="setFilter('beat',this)">🟢 Beats</button>
+  <button class="filter-btn" onclick="setFilter('miss',this)">🔴 Misses</button>
+  <button class="filter-btn" onclick="setFilter('momentum',this)">⚠️ Losing Momentum</button>
+  <button class="filter-btn" onclick="setFilter('pos',this)">↑ Up today</button>
+  <button class="filter-btn" onclick="setFilter('neg',this)">↓ Down today</button>
+  <div class="search-wrap">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input id="search" type="text" placeholder="Search ticker…" oninput="filterSearch(this.value)">
+  </div>
+</div>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th onclick="sortBy('ticker',this)">Ticker</th>
+        <th onclick="sortBy('price',this)">Price</th>
+        <th onclick="sortBy('today',this)">Today</th>
+        <th onclick="sortBy('week1',this)">1 Week</th>
+        <th onclick="sortBy('week2',this)">2 Weeks</th>
+        <th onclick="sortBy('month1',this)">1 Month</th>
+        <th onclick="sortBy('week6',this)">6 Weeks</th>
+        <th onclick="sortBy('month3',this)">3 Months</th>
+        <th onclick="sortBy('month6',this)">6 Months</th>
+        <th onclick="sortBy('ttm',this)">TTM</th>
+        <th onclick="sortBy('momentum',this)">Momentum</th>
+        <th>Earnings</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div class="no-results" id="no-results" style="display:none">No stocks match your filter.</div>
+</div>
+<div class="mobile-cards" id="mobile-cards"></div>
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+<script>
+const PROXY = 'https://corsproxy.io/?';
+const TICKERS = [
+  {t:'NVDA',n:'NVIDIA'},{t:'AVGO',n:'Broadcom'},{t:'AMD',n:'Advanced Micro Devices'},
+  {t:'MU',n:'Micron Technology'},{t:'TSM',n:'Taiwan Semiconductor'},{t:'INTC',n:'Intel'},
+  {t:'KLAC',n:'KLA Corporation'},{t:'LRCX',n:'Lam Research'},{t:'LSCC',n:'Lattice Semiconductor'},
+  {t:'AMAT',n:'Applied Materials'},{t:'ASX',n:'ASE Technology'},{t:'QCOM',n:'Qualcomm'},
+  {t:'MRVL',n:'Marvell Technology'},{t:'CRS',n:'Carpenter Technology'},{t:'CAMT',n:'Camtek'},
+  {t:'CAT',n:'Caterpillar'},{t:'EME',n:'EMCOR Group'},{t:'FIX',n:'Comfort Systems USA'},
+  {t:'FN',n:'Fabrinet'},{t:'AXON',n:'Axon Enterprise'},{t:'NVMI',n:'Nova Ltd'},
+  {t:'PWR',n:'Quanta Services'},{t:'SNEX',n:'StoneX Group'},{t:'SPXC',n:'SPX Technologies'},
+  {t:'STRL',n:'Sterling Infrastructure'},{t:'ASML',n:'ASML Holding'},{t:'ANET',n:'Arista Networks'},
+  {t:'LLY',n:'Eli Lilly'},{t:'GE',n:'GE Aerospace'},{t:'HWM',n:'Howmet Aerospace'},
+  {t:'BE',n:'Bloom Energy'},{t:'VRT',n:'Vertiv Holdings'},{t:'ARM',n:'ARM Holdings'},
+  {t:'GEV',n:'GE Vernova'}
+];
+
+let stockData={}, earningsData={}, momentumData={};
+let currentFilter='all', currentSearch='', sortKey='today', sortDir=-1;
+
+function fmtPct(v){
+  if(v==null) return '<span class="pct na">–</span>';
+  return `<span class="pct ${v>0?'pos':v<0?'neg':'na'}">${v>0?'+':''}${v.toFixed(2)}%</span>`;
+}
+function fmtPrice(v){ return v==null?'–':'$'+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function earnBadge(e){
+  if(!e) return '<span class="earn-badge pending">Loading…</span>';
+  if(e.status==='beat') return '<span class="earn-badge beat">✦ BEAT</span>';
+  if(e.status==='miss') return '<span class="earn-badge miss">✗ MISS</span>';
+  return '<span class="earn-badge inline">~ Inline</span>';
+}
+function momentumBadge(m){
+  if(!m) return '<span class="momentum-badge neutral">–</span>';
+  return m.losing?'<span class="momentum-badge warn">⬇ Fading</span>':'<span class="momentum-badge ok">↑ Strong</span>';
+}
+function setStatus(text,state='loading'){
+  document.getElementById('status-text').textContent=text;
+  document.getElementById('status-dot').className='status-dot'+(state==='done'?' done':state==='error'?' error':'');
+}
+
+function calcMomentum(d){
+  if(!d) return {losing:false,score:0,signals:[]};
+  const {today,week1,month1,month3,ttm}=d;
+  const signals=[]; let count=0;
+  if(week1!=null&&month1!=null&&week1<month1-5){signals.push({label:'1wk vs 1mo',short:week1,long:month1});count++;}
+  if(month1!=null&&month3!=null&&month1<month3-8){signals.push({label:'1mo vs 3mo',short:month1,long:month3});count++;}
+  if(today!=null&&week1!=null&&today<-1&&week1<-2){signals.push({label:'Near-term',short:today,long:week1});count++;}
+  if(ttm!=null&&month1!=null&&ttm>20&&month1<-5){signals.push({label:'TTM vs 1mo',short:month1,long:ttm});count++;}
+  return{losing:count>=2,score:count,signals};
+}
+
+async function fetchQuote(ticker){
+  try{
+    const url=`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=2y`;
+    const res=await fetch(PROXY+encodeURIComponent(url));
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    const result=data?.chart?.result?.[0];
+    if(!result) throw new Error('no result');
+    const meta=result.meta;
+    const price=meta.regularMarketPrice;
+    const closes=result.indicators?.quote?.[0]?.close||[];
+    const times=result.timestamp||[];
+    const valid=closes.map((c,i)=>({c,t:times[i]})).filter(x=>x.c!=null);
+    const n=valid.length;
+    // FIX: chartPreviousClose is unreliable over long ranges — use actual prior close from array
+    const actualPrev = n>=2 ? valid[n-2].c : (meta.chartPreviousClose||meta.previousClose);
+    const todayPct=actualPrev?((price-actualPrev)/actualPrev*100):null;
+    function pctFrom(days){ if(n<days+1) return null; const old=valid[n-1-days]?.c; return old?((price-old)/old*100):null; }
+    return{ticker,price,today:todayPct,week1:pctFrom(5),week2:pctFrom(10),month1:pctFrom(21),week6:pctFrom(30),month3:pctFrom(63),month6:pctFrom(126),ttm:pctFrom(252)};
+  }catch(e){return{ticker,price:null,today:null,week1:null,week2:null,month1:null,week6:null,month3:null,month6:null,ttm:null};}
+}
+
+async function fetchEarnings(ticker){
+  try{
+    const url=`https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=earningsHistory`;
+    const res=await fetch(PROXY+encodeURIComponent(url));
+    if(!res.ok) return{status:'inline'};
+    const data=await res.json();
+    const hist=data?.quoteSummary?.result?.[0]?.earningsHistory?.history;
+    if(!hist||!hist.length) return{status:'inline'};
+    const latest=hist[hist.length-1];
+    const est=latest?.epsEstimate?.raw, act=latest?.epsActual?.raw, surp=latest?.surprisePercent?.raw;
+    const quarter=latest?.period||'';
+    if(est==null||act==null) return{status:'inline'};
+    let status='inline';
+    if(surp!=null){if(surp>3)status='beat';else if(surp<-3)status='miss';}
+    else{if(act>est*1.03)status='beat';else if(act<est*0.97)status='miss';}
+    return{status,quarter,epsEstimate:est?.toFixed(2),epsActual:act?.toFixed(2),surprisePct:surp?.toFixed(1)};
+  }catch(e){return{status:'inline'};}
+}
+
+function buildRow(tk){
+  const d=stockData[tk.t],e=earningsData[tk.t],m=momentumData[tk.t];
+  const ec=e?.status==='beat'?'beat':e?.status==='miss'?'miss':'';
+  const mc=m?.losing?'momentum-loss':'';
+  const tc=m?.losing?'momentum-warn':'';
+  return `<tr class="${[ec,mc].filter(Boolean).join(' ')}" onclick="openModal('${tk.t}')">
+    <td><div class="ticker-cell"><span class="ticker-badge ${tc}">${tk.t}</span><span class="company-name">${tk.n}</span></div></td>
+    <td class="price-cell">${d?fmtPrice(d.price):'<span class="skeleton" style="width:58px">&nbsp;</span>'}</td>
+    <td>${d?fmtPct(d.today):'<span class="skeleton" style="width:46px">&nbsp;</span>'}</td>
+    <td>${d?fmtPct(d.week1):'<span class="skeleton" style="width:46px">&nbsp;</span>'}</td>
+    <td>${d?fmtPct(d.week2):'<span class="skeleton" style="width:46px">&nbsp;</span>'}</td>
+    <td>${d?fmtPct(d.month1):'<span class="skeleton" style="width:46px">&nbsp;</span>'}</td>
+    <td>${d?fmtPct(d.week6):'<span class="skeleton" style="width:46px">&nbsp;</span>'}</td>
+    <td>${d?fmtPct(d.month3):'<span class="skeleton" style="width:46px">&nbsp;</span>'}</td>
+    <td>${d?fmtPct(d.month6):'<span class="skeleton" style="width:46px">&nbsp;</span>'}</td>
+    <td>${d?fmtPct(d.ttm):'<span class="skeleton" style="width:46px">&nbsp;</span>'}</td>
+    <td>${momentumBadge(m)}</td>
+    <td>${earnBadge(e)}</td>
+  </tr>`;
+}
+
+function buildCard(tk){
+  const d=stockData[tk.t],e=earningsData[tk.t],m=momentumData[tk.t];
+  const ec=e?.status==='beat'?'beat':e?.status==='miss'?'miss':'';
+  const mc=m?.losing?'momentum-loss':'';
+  const tc=m?.losing?'momentum-warn':'';
+  const fv=v=>v==null?'–':(v>0?'+':'')+v.toFixed(2)+'%';
+  const fc=v=>v==null?'#64748b':v>0?'var(--green)':v<0?'var(--red)':'#fff';
+  return `<div class="stock-card ${[ec,mc].filter(Boolean).join(' ')}" onclick="openModal('${tk.t}')">
+    <div class="card-top">
+      <div class="card-ticker-wrap"><span class="card-ticker ${tc}">${tk.t}</span><span class="card-company">${tk.n}</span></div>
+      <div class="card-price-wrap"><div class="card-price">${d?.price!=null?fmtPrice(d.price):'–'}</div><div class="card-today" style="color:${fc(d?.today)};text-align:right">${fv(d?.today)}</div></div>
+    </div>
+    <div class="card-grid">
+      <div class="card-stat"><div class="card-stat-label">1 Week</div><div class="card-stat-val" style="color:${fc(d?.week1)}">${fv(d?.week1)}</div></div>
+      <div class="card-stat"><div class="card-stat-label">1 Month</div><div class="card-stat-val" style="color:${fc(d?.month1)}">${fv(d?.month1)}</div></div>
+      <div class="card-stat"><div class="card-stat-label">3 Months</div><div class="card-stat-val" style="color:${fc(d?.month3)}">${fv(d?.month3)}</div></div>
+    </div>
+    <div class="card-badges">${momentumBadge(m)}${earnBadge(e)}<span class="card-tap-hint">Tap for details →</span></div>
+  </div>`;
+}
+
+function getVal(tk,key){
+  const d=stockData[tk.t];
+  if(key==='ticker') return tk.t;
+  if(key==='price') return d?.price??null;
+  if(key==='momentum') return momentumData[tk.t]?.score??-1;
+  return d?.[key]??null;
+}
+
+function renderTable(){
+  let tickers=TICKERS.filter(tk=>{
+    const e=earningsData[tk.t],m=momentumData[tk.t],d=stockData[tk.t];
+    if(currentSearch&&!tk.t.toLowerCase().includes(currentSearch)&&!tk.n.toLowerCase().includes(currentSearch)) return false;
+    if(currentFilter==='beat') return e?.status==='beat';
+    if(currentFilter==='miss') return e?.status==='miss';
+    if(currentFilter==='momentum') return m?.losing===true;
+    if(currentFilter==='pos') return d?.today>0;
+    if(currentFilter==='neg') return d?.today<0;
+    return true;
+  }).sort((a,b)=>{
+    let va=getVal(a,sortKey),vb=getVal(b,sortKey);
+    if(sortKey==='ticker') return sortDir*String(va).localeCompare(String(vb));
+    if(va==null&&vb==null) return 0;
+    if(va==null) return 1; if(vb==null) return -1;
+    return sortDir*(va-vb);
+  });
+  document.getElementById('no-results').style.display=tickers.length?'none':'block';
+  document.getElementById('tbody').innerHTML=tickers.map(buildRow).join('');
+  document.getElementById('mobile-cards').innerHTML=tickers.map(buildCard).join('');
+  const todays=TICKERS.map(t=>stockData[t.t]?.today).filter(v=>v!=null);
+  if(todays.length){const avg=todays.reduce((a,b)=>a+b,0)/todays.length;const el=document.getElementById('stat-today');el.textContent=(avg>0?'+':'')+avg.toFixed(2)+'%';el.style.color=avg>0?'var(--green)':avg<0?'var(--red)':'var(--text)';}
+  document.getElementById('stat-beats').textContent=Object.values(earningsData).filter(e=>e?.status==='beat').length||'–';
+  document.getElementById('stat-misses').textContent=Object.values(earningsData).filter(e=>e?.status==='miss').length||'–';
+  document.getElementById('stat-momentum').textContent=Object.values(momentumData).filter(m=>m?.losing).length||'–';
+  const top=TICKERS.filter(t=>stockData[t.t]?.today!=null).sort((a,b)=>(stockData[b.t]?.today||0)-(stockData[a.t]?.today||0))[0];
+  if(top){document.getElementById('stat-top').textContent=`${top.t} +${stockData[top.t].today.toFixed(2)}%`;document.getElementById('stat-top-name').textContent=top.n;}
+}
+
+function setFilter(f,btn){currentFilter=f;document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderTable();}
+function filterSearch(v){currentSearch=v.toLowerCase();renderTable();}
+function sortBy(key,th){if(sortKey===key)sortDir*=-1;else{sortKey=key;sortDir=-1;}document.querySelectorAll('thead th').forEach(t=>t.classList.remove('sort-asc','sort-desc'));th.classList.add(sortDir===1?'sort-asc':'sort-desc');renderTable();}
+
+function openModal(ticker){
+  const tk=TICKERS.find(t=>t.t===ticker);
+  const d=stockData[ticker],e=earningsData[ticker],m=momentumData[ticker];
+  const perfItems=[['Today',d?.today],['1 Week',d?.week1],['2 Weeks',d?.week2],['1 Month',d?.month1],['6 Weeks',d?.week6],['3 Months',d?.month3],['6 Months',d?.month6],['TTM',d?.ttm]];
+  let earnHTML='<div class="earn-card"><div class="earn-card-title" style="color:#94a3b8">Loading earnings…</div></div>';
+  if(e){
+    if(e.status==='beat') earnHTML=`<div class="earn-card beat"><div class="earn-card-title" style="color:var(--green)">✦ Earnings Beat — ${e.quarter||'Latest'}</div>${e.epsEstimate!=null?`<div class="earn-card-row"><span class="earn-card-key">EPS Estimate</span><span class="earn-card-val">$${e.epsEstimate}</span></div>`:''} ${e.epsActual!=null?`<div class="earn-card-row"><span class="earn-card-key">EPS Actual</span><span class="earn-card-val" style="color:var(--green)">$${e.epsActual}</span></div>`:''} ${e.surprisePct!=null?`<div class="earn-card-row"><span class="earn-card-key">Surprise</span><span class="earn-card-val" style="color:var(--green)">+${e.surprisePct}%</span></div>`:''}</div>`;
+    else if(e.status==='miss') earnHTML=`<div class="earn-card miss"><div class="earn-card-title" style="color:var(--red)">✗ Earnings Miss — ${e.quarter||'Latest'}</div>${e.epsEstimate!=null?`<div class="earn-card-row"><span class="earn-card-key">EPS Estimate</span><span class="earn-card-val">$${e.epsEstimate}</span></div>`:''} ${e.epsActual!=null?`<div class="earn-card-row"><span class="earn-card-key">EPS Actual</span><span class="earn-card-val" style="color:var(--red)">$${e.epsActual}</span></div>`:''} ${e.surprisePct!=null?`<div class="earn-card-row"><span class="earn-card-key">Surprise</span><span class="earn-card-val" style="color:var(--red)">${e.surprisePct}%</span></div>`:''}</div>`;
+    else earnHTML=`<div class="earn-card inline-card"><div class="earn-card-title" style="color:var(--amber)">~ Results Inline / Pending</div><div style="font-size:13px;color:#cbd5e1;margin-top:6px">Results within 3% of estimates or next quarter upcoming.</div></div>`;
+  }
+  let momHTML='';
+  if(m){
+    if(m.losing) momHTML=`<div class="modal-section"><div class="modal-section-title">Momentum Analysis</div><div class="momentum-card"><div class="momentum-card-title">⬇ Losing Momentum (${m.score} signal${m.score!==1?'s':''})</div><div class="momentum-summary">Short-term returns are significantly trailing longer-term averages across multiple timeframes, indicating slowing price momentum.</div><div class="momentum-metrics">${m.signals.map(s=>`<div class="momentum-metric"><div class="momentum-metric-label">${s.label}</div><div class="momentum-metric-val" style="color:var(--orange)">${s.short?.toFixed(1)}% vs ${s.long?.toFixed(1)}%</div></div>`).join('')}</div></div></div>`;
+    else momHTML=`<div class="modal-section"><div class="modal-section-title">Momentum Analysis</div><div class="momentum-card ok"><div class="momentum-card-title ok">↑ Momentum Strong</div><div class="momentum-summary" style="color:#cbd5e1">Short-term performance is tracking well against longer-term returns.</div></div></div>`;
+  }
+  document.getElementById('modal-content').innerHTML=`
+    <div class="modal-header">
+      <div><div class="modal-ticker">${ticker}</div><div class="modal-company">${tk?.n||''}</div>${d?.price!=null?`<div class="modal-price">${fmtPrice(d.price)}</div>`:''}</div>
+      ${d?.today!=null?`<div class="modal-today" style="color:${d.today>=0?'var(--green)':'var(--red)'}">${d.today>=0?'+':''}${d.today.toFixed(2)}%</div>`:''}
+    </div>
+    <div class="modal-section"><div class="modal-section-title">Performance</div><div class="perf-grid">${perfItems.map(([l,v])=>`<div class="perf-stat"><div class="perf-stat-label">${l}</div><div class="perf-stat-val" style="color:${v==null?'#64748b':v>0?'var(--green)':v<0?'var(--red)':'#fff'}">${v==null?'–':(v>0?'+':'')+v.toFixed(2)+'%'}</div></div>`).join('')}</div></div>
+    ${momHTML}
+    <div class="modal-section"><div class="modal-section-title">Latest Earnings</div>${earnHTML}</div>
+    <div class="ext-links">
+      <a class="ext-link" href="https://finance.yahoo.com/quote/${ticker}" target="_blank">Yahoo Finance</a>
+      <a class="ext-link" href="https://finviz.com/quote.ashx?t=${ticker}" target="_blank">Finviz</a>
+      <a class="ext-link" href="https://www.earningswhispers.com/stocks/${ticker.toLowerCase()}" target="_blank">Earnings Whispers</a>
+    </div>`;
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(e){if(!e||e.target===document.getElementById('modal'))document.getElementById('modal').classList.remove('open');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal({});});
+
+async function loadAll(){
+  const bar=document.getElementById('loading-bar');
+  const spinner=document.getElementById('spinner');
+  spinner.style.display='block';
+  stockData={}; earningsData={}; momentumData={};
+  renderTable();
+  bar.style.width='5%';
+
+  // Fetch prices in batches of 5
+  const batchSize=5;
+  let done=0;
+  for(let i=0;i<TICKERS.length;i+=batchSize){
+    const batch=TICKERS.slice(i,i+batchSize);
+    setStatus(`Loading prices ${i+1}–${Math.min(i+batchSize,TICKERS.length)} of ${TICKERS.length}…`);
+    await Promise.all(batch.map(async tk=>{
+      stockData[tk.t]=await fetchQuote(tk.t);
+      momentumData[tk.t]=calcMomentum(stockData[tk.t]);
+      done++;
+      bar.style.width=(5+(done/TICKERS.length*45))+'%';
+      renderTable();
+    }));
+    await new Promise(r=>setTimeout(r,200));
+  }
+
+  // Fetch earnings in batches of 5
+  done=0;
+  for(let i=0;i<TICKERS.length;i+=batchSize){
+    const batch=TICKERS.slice(i,i+batchSize);
+    setStatus(`Loading earnings ${i+1}–${Math.min(i+batchSize,TICKERS.length)} of ${TICKERS.length}…`);
+    await Promise.all(batch.map(async tk=>{
+      earningsData[tk.t]=await fetchEarnings(tk.t);
+      done++;
+      bar.style.width=(50+(done/TICKERS.length*48))+'%';
+      renderTable();
+    }));
+    await new Promise(r=>setTimeout(r,200));
+  }
+
+  bar.style.width='100%';
+  setTimeout(()=>{bar.style.width='0%';},500);
+  spinner.style.display='none';
+  document.getElementById('last-update').textContent='Updated '+new Date().toLocaleTimeString();
+  setStatus('All data loaded — '+new Date().toLocaleTimeString(),'done');
+}
+
+loadAll();
+</script>
+</body>
+</html>
